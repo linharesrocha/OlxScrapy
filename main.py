@@ -3,15 +3,14 @@ from bs4 import BeautifulSoup
 from urllib.request import Request, urlopen
 import pandas as pd
 import time
-from datetime import date
 
 
-def creating_links(count, stop, pesquisa, all_urls):
+def creating_links():
     for i in range(count, stop):
         all_urls.append('https://mg.olx.com.br/belo-horizonte-e-regiao?o=' + str(i) + '&q=' + pesquisa)
 
 
-def scrapy_data(all_urls, list_date, list_price, list_name, list_link):
+def scrapy_data():
     # Scraping Data in each URL
     for url in all_urls:
         req = Request(url, headers={'User-Agent': 'Mozilla/5.0'})
@@ -54,21 +53,24 @@ def scrapy_data(all_urls, list_date, list_price, list_name, list_link):
             break;
 
 
-def save_data(list_name, list_price, list_date, list_link):
+def save_data():
     # Dictionary of Lists
     dictionary = {'nome': list_name, 'preco': list_price, 'data_publicacao': list_date, 'link': list_link}
 
     # Creating a Dataframe
     df = pd.DataFrame(dictionary)
 
+    # Creating column index
+    df['ordem_publicacao'] = df.index
+
     # Transformation
     df['preco'] = df['preco'].astype(float)
 
     # Sorting by Price
-    df.sort_values(by=['preco'], inplace=True)
+    df.sort_values(by=['preco', 'ordem_publicacao'], ascending = [True, True], inplace=True)
 
     # Converting to Excel
-    writer = pd.ExcelWriter('data.xlsx', engine='xlsxwriter')
+    writer = pd.ExcelWriter('/home/guilherme/Desktop/data.xlsx', engine='xlsxwriter')
     df.to_excel(writer, sheet_name='Olx', index=False)
     for column in df:
         column_length = max(df[column].astype(str).map(len).max(), len(column))
@@ -76,14 +78,9 @@ def save_data(list_name, list_price, list_date, list_link):
         writer.sheets['Olx'].set_column(col_idx, col_idx, column_length)
     writer.save()
 
-
 if __name__ == '__main__':
     # Start mesure Execution Time
     st = time.time()
-
-    # Days
-    today = date.today().day
-    yesterday = today - 1
 
     # Creating Lists
     list_name = []
@@ -91,18 +88,21 @@ if __name__ == '__main__':
     list_link = []
     list_date = []
     all_urls = []
+    list_sort = []
 
     # Counting
     count = 1
+    count_sort = 1
     stop = 50
 
     # User Search
     pesquisa = input('O que você deseja pesquisar? ').replace(' ', '+')
 
     # Functions
-    creating_links(count, stop, pesquisa, all_urls)
-    scrapy_data(all_urls, list_date, list_price, list_name, list_link)
-    save_data(list_name, list_price, list_date, list_link)
+    creating_links()
+    scrapy_data()
+    save_data()
+
 
     # Finish measure Execution Time
     elapsed_time = time.time() - st
